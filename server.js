@@ -3,7 +3,8 @@ var Stack = require('stack'),
     Creationix = require('creationix'),
     Http = require('http'),
     ChildProcess = require('child_process');
-    ConfigParams = require('./config-params');
+    ConfigParams = require('./config-params'),
+	logger = require('nlogger').logger(module);
 
 
 var port = process.env.port || ConfigParams.port || 1337;
@@ -18,18 +19,18 @@ Http.createServer(Stack(
   require('wheat')(gitRepoPath)
   )).listen(port);
 
-console.log('running on port:' + port);
-console.log('git repo path:' + gitRepoPath);
+logger.info('running on port:' + port);
+logger.info('git repo path:' + gitRepoPath);
 
 function handleGitHook(req, res, next) {
 	if (req.method == 'POST' && req.url == '/hook') {
   		gitExec(['--git-dir=' + gitRepoPath, 'fetch'], 'utf8', function (err, text) {
     		if (err) {
-    			console.log(err);
+    			logger.error("Error while serving page: {}", err);
     			res.writeHead(500);
    				res.end(err);
     		} else {
-    			console.log(text);
+    			console.info(text);
     			res.writeHead(200);
    				res.end('OK');	
     		}
