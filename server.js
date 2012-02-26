@@ -3,10 +3,14 @@ var Stack = require('stack'),
     Creationix = require('creationix'),
     Http = require('http'),
     ChildProcess = require('child_process');
+    ConfigParams = require('./config-params');
 
 
-var port = process.env.port || 1337;
-var gitRepoPath = process.env.gitrepoblogpath || __dirname;
+var port = process.env.port || ConfigParams.port || 1337;
+var gitRepoPath = process.env.gitrepoblogpath || ConfigParams.repositoryPath || __dirname;
+var gitBinDir = ConfigParams.gitBinDir || process.env.ProgramFiles ? process.env.ProgramFiles + "/Git/bin/" : "";
+
+require('git-fs').setBinaryDir(gitBinDir);
 	
 Http.createServer(Stack(
   Creationix.log(),
@@ -16,7 +20,6 @@ Http.createServer(Stack(
 
 console.log('running on port:' + port);
 console.log('git repo path:' + gitRepoPath);
-
 
 function handleGitHook(req, res, next) {
 	if (req.method == 'POST' && req.url == '/hook') {
@@ -37,6 +40,7 @@ function handleGitHook(req, res, next) {
    }	
 }
 
+/*
 function gitExec(commands, encoding, callback) {
   var child = ChildProcess.spawn("git", commands);
   var stdout = [], stderr = [];
@@ -56,3 +60,4 @@ function gitExec(commands, encoding, callback) {
   });
   child.stdin.end();
 }
+*/
