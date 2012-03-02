@@ -2,7 +2,7 @@
 var Stack = require('stack'),
     Creationix = require('creationix'),
     Http = require('http'),
-    ChildProcess = require('child_process');
+    ChildProcess = require('child_process'),
     ConfigParams = require('./config-params'),
 	logger = require('nlogger').logger(module);
 
@@ -16,7 +16,7 @@ require('git-fs').setBinaryDir(gitBinDir);
 Http.createServer(Stack(
   Creationix.log(),
   handleGitHook,
-  require('wheat')(gitRepoPath)
+  require('wheat')(gitRepoPath, {preProcessMarkdown: preProcessMarkdown})
   )).listen(port);
 
 logger.info('running on port:' + port);
@@ -39,6 +39,38 @@ function handleGitHook(req, res, next) {
    else {
 		next();   	
    }	
+}
+
+function preProcessMarkdown(props) {
+	var markdown = props.markdown;
+	
+	var mainMatches = markdown.match(/(#+)\s*Info[ ]*([\r\n][\r\n]?[ \t]*(\w+):\s*(.*))+/g)
+	mainMatches && mainMatches.forEach(function(mainMatch){
+		var head = mainMatch.match(/(#+)\s*Info[ ]*[\r\n][\r\n]?/)[0].trim();
+	
+		var info = mainMatch.split(/[\r\n]+/).reduce(function(info, line){
+			if (line) {
+				var match = line.trim().match(/^(\w+):\s*(.*)$/);
+				if (match) {
+					info.push({k: match[1], v: match[2].split(/ \/ /)});
+				}
+			}			
+			return info;
+		}, []);
+		
+		var body = info.map(function(entry){
+			var s = "<dt>" + entry.k + "</dt>";
+			entry.v.forEach(function(v){
+				s += "<dd>" + v + "</dd>";
+			});
+			return s;
+		}).join('\n');
+		
+		var full = head + '\n\n<dl class="info">\n' + body + '\n</dl>\n';
+		markdown = markdown.replace(mainMatch, full);
+	});
+	
+	props.markdown = markdown;
 }
 
 /*
